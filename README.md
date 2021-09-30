@@ -1,34 +1,32 @@
-# 某书整站爬虫
-Scrapy + selenium/webdriver + 随机请求头 + IP proxy + twisted ConnectionPool + mysql 爬取某书整站爬虫 
+# The whole site crawler
+Scrapy + selenium/webdriver + Random request header + IP proxy + twisted ConnectionPool + mysql Crawl the whole site crawler for a certain book
 
-### 环境安装  
+### Environment installation  
 ```vim
 pip install requirements
 ```
-### 数据库配置
-在setting.py中进行配置。
-连接数据库使用的是 **pymysql**
+### Database configuration
+在setting.py Configure in。
+Connect to the database using **pymysql**
 
 ```python
     # database config
-    # 数据库主机IP
+    # Database host IP
     HOST = '127.0.0.1'
-    # 数据库用户名
+    # database username
     USER = "root"
-    # 数据库密码
+    # Database password
     PASSWORD = "password"
-    # 数据库名称
+    # Name database
     DATABASE_NAME = 'jianshu'
 ```
-### selenium + webdriver添加中间件 爬取网页
-因为动态网站，数据通过js动态加载，或者有强大反爬虫技术
-所以这里使用selenium + chromedriver（chrome浏览器） 完全模拟浏览器操作来爬取。
+### selenium + webdriver Add middleware to crawl web pages twenty four Because of the dynamic website, the data is dynamically loaded through js, or there is a powerful anti-crawler technology 25 So here we use selenium + chromedriver (chrome browser) to completely simulate browser operations to crawl.
 
-**tips : selenium + phantomjs也很好用**
+**tips : selenium + phantomjs Also works well**
 ```python
   class ChromeDriverDownloaderMiddleware(object):
       '''
-      使用selenium + chromedriver爬取网页
+      Use selenium + chromedriver to crawl web pages
       '''
       def __init__(self):
           driver_path = r'D:\python\chromedriver\chromedriver.exe'
@@ -44,16 +42,17 @@ pip install requirements
 ```
 
 
-### 随机请求头设置
+### Random request header settings
  http://www.useragentstring.com
- 到这个网址，可以找到全部User-Agent
+ Go to this website, you can find all
+ User-Agent
  
- 通过中间键的方式设置User_Agent
+ Set by the middle button User_Agent
  
  ```python
      class UserAgentRandomDownloaderMiddleware(object):
          '''
-         设置随机请头
+         Set random head
          '''
          USER_AGENT = [
              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36',
@@ -66,22 +65,21 @@ pip install requirements
          def process_request(self, request, spider):
              request.headers['User-Agent'] = random.choice(self.USER_AGENT)
  ```
- ### 设置IP代理
- 获取代理IP的方式:
+ ### Set up IP proxy How to get the proxy IP:
     
-   - 网络爬取，这里推荐一个IP代理池开源项目：
+   - Web crawling, here is an open source IP proxy pool project:
    https://github.com/qiyeboy/IPProxyPool
-   - 花钱购买 例如：快代理、芝麻代理等
+   - Spend money to buy such as: fast agent, sesame agent, etc
  
-**在项目中，我们获取到一个代理IP一定要充分利用，这里说对的充分利用就是说，一定要等当前IP过期或被网站禁用，再去获取新的ip,特别注意异步做异步爬虫时，对多个线程或者进程，对于代理IP的管理，避免过度浪费。**
+**In the project, we must make full use of a proxy IP when we get it. The correct use here means that we must wait for the current IP to expire or be disabled by the website before we get a new IP. Pay special attention to asynchronous crawlers. For multiple threads or processes, for the management of proxy IP, avoid excessive waste。**
 
-本项目中使用的是芝麻代理获取代理IP,代码如下
+This project uses Sesame Proxy to obtain the proxy IP, the code is as follows
  ```python
      class IPProxyDownloaderMiddleware(object):
          '''
-         IP代理 ，
+         IPproxy ，
          '''
-         # 获取代理ip信息地址 例如芝麻代理、快代理等
+         # Get the proxy IP information address, such as Zhima proxy, fast proxy, etc.
          IP_URL = r'http://xxxxxx.com/getip?xxxxxxxxxx'
      
          def __init__(self):
@@ -99,31 +97,30 @@ pip install requirements
      
          def process_response(self, request, response, spider):
              if response.status != 200:
-                 # 如果来到这里，这个请求相当于被识别为爬虫了
-                 # 所以这个请求被废掉了
-                 # 如果不返回request,那么这个请求就是没有获取到数据
-                 # 返回了request，那么这个这个请求会被重新添加到调速器
+                 # If you come here, this request is equivalent to being recognized as a crawler
+                 # So this request is abolished 104 If you don't return the request, then the request is not getting the data
+                 # If the request is returned, then this request will be added to the governor again
                  if not self.current_proxy.blacked:
                      self.current_proxy.blacked = True
-                     print("被拉黑了")
+                     print("Blacked out")
                  self.updateProxy()
                  return request
-             # 正常的情况下，返回response
+             # Under normal circumstances, return response
              return response
      
          def updateProxy(self):
              '''
-             获取新的代理ip
+             Get new proxy ip
              :return:
              '''
-             # 因为是异步请求，为了不同时向芝麻代理发送过多的请求这里在获取代理IP
-             # 的时候，需要加锁
+             # Because it is an asynchronous request, in order not to send too many requests to the Zhima proxy at the same time, here is the proxy IP.
+             # When you need to lock
              self.lock.acquire()
              if not self.current_proxy or self.current_proxy.is_expire or self.current_proxy.blacked:
                  response = requests.get(self.IP_URL)
                  text = response.text
      
-                 # 返回值 {"code":0,"success":true,"msg":"0","data":[{"ip":"49.70.152.188","port":4207,"expire_time":"2019-05-28 18:53:15"}]}
+                 # return value {"code":0,"success":true,"msg":"0","data":[{"ip":"49.70.152.188","port":4207,"expire_time":"2019-05-28 18:53:15"}]}
                  jsonString = json.loads(text)
      
                  data = jsonString['data']
@@ -136,22 +133,22 @@ pip install requirements
   ```python
      class IPProxyModel():
          '''
-         代理ip模型类
+         Proxy ip model class
          '''
          def __init__(self,data):
              # IP
              self.ip = data['ip']
-             # 端口号
+             # The port number
              self.port = data['port']
-             # 过期时间
+             # Expiration
              self.expire_time_str = data['expire_time']
-             # 是否被加入了黑名单
+             # Is it blacklisted
              self.blacked = False
      
              date_str,time_str = self.expire_time_str.split(" ")
              year,month,day = date_str.split('-')
              hour,minute,second = time_str.split(":")
-             # 过期时间
+             # Expiration
              self.expire_time = datetime(year=int(year),month=int(month),day=int(day),hour=int(hour),minute=int(minute),second=int(second))
      
              self.address = "https://{}:{}".format(self.ip,self.port)
@@ -159,7 +156,7 @@ pip install requirements
          @property
          def is_expire(self):
              '''
-             验证代理ip是否过期
+             Verify whether the proxy IP has expired
              :return:
              '''
              now = datetime.now()
@@ -169,17 +166,15 @@ pip install requirements
                  return False
   ```
   
-  ### 保存数据到数据库
-  本项目使用 twisted提供的数据库连接池插入数据到数据库
-  使用方式：
+  ### Save data to database 173 This project uses the database connection pool provided by twisted to insert data into the database 174 How to use:
   
-  导入
+  Import
 ```pyhton
     
      from twisted.enterprise import adbapi
      from pymysql import cursors
    ```
-  配置数据库参数并且获取连接池对象：
+  Configure database parameters and obtain connection pool objects:
   
   ```pyhton
       
@@ -194,22 +189,22 @@ pip install requirements
            'cursorclass': cursors.DictCursor
          }
          
-         # 使用twisted提供的 ConnectionPool
+         # Use twisted provided ConnectionPool
          self.dbpool = adbapi.ConnectionPool('pymysql', **db_params)
    ```
    
-   插入数据到数据库：
+   Insert data into the database:
    
  ```pyhton
     defer = self.dbpool.runInteraction(self.insert_item, item)
   ```
   
-  ### 启动爬虫
-  运行 start.py即可启动爬虫
+  ### Start crawler Run start.py to start the crawler
   
    ```pyhton
       from scrapy import cmdline
       
-      # 在命令行执行 scrapy crawl jianshu 命令
+      # Execute on the command line
+ scrapy crawl jianshu Order
       cmdline.execute('scrapy crawl jianshu'.split())
    ```
